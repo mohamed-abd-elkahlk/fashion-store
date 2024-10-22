@@ -1,57 +1,73 @@
+const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
 
-const UserSchema = new mongoose.Schema({
-  first_name: {
-    type: String,
-    required: [true, "first name required !"],
-  },
-  last_name: {
-    type: String,
-    required: [true, "last name required !"],
-  },
-  email: {
-    type: String,
-    required: [true, "email name required !"],
-  },
-  password: {
-    type: String,
-  },
+const userSchema = new mongoose.Schema(
+  {
+    username: {
+      type: String,
+      trim: true,
+      required: [true, "name required"],
+    },
+    email: {
+      type: String,
+      required: [true, "email required"],
+      unique: true,
+      lowercase: true,
+    },
+    phone: String,
+    profileImg: String,
 
-  passwordChangedAt: Date,
-
-  passwordResetCode: String,
-
-  passwordResetExpires: Date,
-
-  passwordResetVerified: Boolean,
-
-  isVarvaid: {
-    type: Boolean,
-    default: false,
+    password: {
+      type: String,
+      required: [true, "password required"],
+      minlength: [6, "Too short password"],
+    },
+    salt: String,
+    passwordChangedAt: Date,
+    passwordResetCode: String,
+    passwordResetExpires: Date,
+    passwordResetVerified: Boolean,
+    role: {
+      type: String,
+      enum: ["user", "manager", "admin"],
+      default: "user",
+    },
+    active: {
+      type: Boolean,
+      default: true,
+    },
+    wishlist: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "product",
+      },
+    ],
+    addresses: [
+      {
+        id: { type: mongoose.Schema.Types.ObjectId },
+        alias: String,
+        details: String,
+        phone: String,
+        city: String,
+        postalCode: String,
+      },
+    ],
   },
+  {
+    timestamps: true,
+    toJSON: {
+      versionKey: false,
+    },
+  }
+);
 
-  active: {
-    type: Boolean,
-    default: true,
-  },
-  role: {
-    type: String,
-    enum: ["user", "admin"],
-    default: "user",
-  },
-  avatar: {
-    type: String,
-  },
+userSchema.pre("save", function (next) {
+  if (!this.isModified("password")) return next();
+  // Hashing user password
+  this.password = bcrypt.hashSync(this.password);
+  next();
 });
 
-// UserSchema.pre("save", function (next) {
-//   if (!this.isModified("password")) return next();
-//   const password = genPasswordHash(this.password);
-//   this.password = password.hashedPassword;
-//   this.salt = password.salt;
+const User = mongoose.model("User", userSchema);
 
-//   next();
-// });
-
-const User = mongoose.model("user", UserSchema);
 module.exports = User;
